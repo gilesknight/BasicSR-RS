@@ -4,6 +4,7 @@ import numpy as np
 import os
 import torch
 from torchvision.utils import make_grid
+from rasterio.io import MemoryFile
 
 
 def img2tensor(imgs, bgr2rgb=True, float32=True):
@@ -131,6 +132,28 @@ def imfrombytes(content, flag='color', float32=False):
         img = img.astype(np.float32) / 255.
     return img
 
+def rs_imfrombytes(content, float32=False, rescale_val=1.0):
+    """Read an remote sensing image from bytes.
+
+    Args:
+        content (bytes): Remote sensing image bytes got from files or other
+        streams.
+        float32 (bool): Whether to change to float32., If True, will also norm
+            to [0, 1]. Default: False.
+        rescale_val (float):
+            Value that the image array will be divided by when normalising to
+            [0, 1]. Only used then float32 = True. Default: 1.0.
+
+    Returns:
+        ndarray: Loaded image array.
+    """
+
+    with MemoryFile(content).open() as src:
+        img = src.read()
+        img = np.moveaxis(img, 0, -1)
+    if float32:
+        img = img.astype(np.float32) / rescale_val
+    return img
 
 def imwrite(img, file_path, params=None, auto_mkdir=True):
     """Write image to file.
