@@ -1,0 +1,25 @@
+{
+    "name": "BasicSR-RS",
+	"image": "gilesknight/superres-pytorch",
+	"runArgs": [
+		"--gpus",
+		"all"
+	],
+	"mounts": [
+		// "source=${localEnv:HOME}/Documents/python-projects/um-ps-dataset/data/patches_128,target=/workspaces/BasicSR/datasets/patches_128,type=bind,consistency=cached",
+		// "source=${localEnv:HOME}/Documents/python-projects/um-ps-dataset/data/patches_128_val,target=/workspaces/BasicSR/datasets/patches_128_val,type=bind,consistency=cached",
+	],
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-toolsai.jupyter",
+				"ms-python.vscode-pylance",
+				"ms-python.python",
+				"ms-toolsai.vscode-jupyter-cell-tags",
+				"ms-toolsai.jupyter-renderers",
+				"ms-toolsai.vscode-jupyter-slideshow",
+				"ms-toolsai.jupyter-keymap"
+			]
+		}
+	}
+}
