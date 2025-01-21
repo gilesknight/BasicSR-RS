@@ -35,6 +35,26 @@ def img2tensor(imgs, bgr2rgb=True, float32=True):
     else:
         return _totensor(imgs, bgr2rgb, float32)
 
+def rs_img2tensor(imgs, float32):
+    """Remote sensing numpy array to tensor.
+
+    Args:
+        imgs (list[ndarray] | ndarray): Input images.
+        float32 (bool): Whether to change to float32.
+
+    Returns:
+        list[tensor] | tensor: Tensor images. If returned results only have
+            one element, just return tensor.
+    """
+    def _totensor(img, float32):
+        img = torch.from_numpy(img.transpose(2, 0, 1))
+        if float32:
+            img = img.float()
+        return img
+    if isinstance(imgs, list):
+        return [_totensor(img, float32) for img in imgs]
+    else:
+        return _totensor(imgs, float32)
 
 def tensor2img(tensor, rgb2bgr=True, out_type=np.uint8, min_max=(0, 1)):
     """Convert torch Tensors into image numpy arrays.
