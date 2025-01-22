@@ -1,4 +1,6 @@
 import torch
+import copy
+import rasterio
 from collections import OrderedDict
 from os import path as osp
 from tqdm import tqdm
@@ -468,12 +470,14 @@ class SRModelRS(BaseModel):
             pbar = tqdm(total=len(dataloader), unit='image')
 
         for idx, val_data in enumerate(dataloader):
-            img_name = osp.splitext(osp.basename(val_data['lq_path'][0]))[0]
+            img_path = val_data['lq_path'][0]
+            img_name = osp.splitext(osp.basename(img_path))[0]
             self.feed_data(val_data)
             self.test()
 
             visuals = self.get_current_visuals()
-            sr_img = rs_tensor2img([visuals['result']])
+            sr_img = rs_tensor2img([visuals['result']], False)
+            print(f"out_shape = {sr_img.shape}")
             metric_data['img'] = sr_img
             if 'gt' in visuals:
                 gt_img = rs_tensor2img([visuals['gt']])
@@ -486,17 +490,37 @@ class SRModelRS(BaseModel):
             torch.cuda.empty_cache()
 
             if save_img:
+                with rasterio.open(img_path) as src:
+                    new_profile = copy.deepcopy(src.profile)
+                old_transform = new_profile['transform']
+                new_transform = rasterio.Affine(
+                    old_transform.a / self.opt['scale'],  # New pixel width
+                    old_transform.b,                      # Row rotation (unchanged)
+                    old_transform.c,                      # X coordinate of origin
+                    old_transform.d,                      # Column rotation (unchanged)
+                    old_transform.e / self.opt['scale'],  # New pixel height
+                    old_transform.f                       # Y coordinate of origin
+                )
+                new_profile['transform'] = new_transform
+                new_profile['width'] = new_profile['width'] * self.opt['scale']
+                new_profile['height'] = new_profile['height'] * self.opt['scale']
+                if 'res' in new_profile:
+                    new_profile['res'] = {
+                        'x': new_profile['res']['x'] / self.opt['scale'],
+                        'y': new_profile['res']['y'] / self.opt['scale']
+                    }
                 if self.opt['is_train']:
                     save_img_path = osp.join(self.opt['path']['visualization'], img_name,
-                                             f'{img_name}_{current_iter}.png')
+                                             f'{img_name}_{current_iter}.tif')
                 else:
                     if self.opt['val']['suffix']:
                         save_img_path = osp.join(self.opt['path']['visualization'], dataset_name,
-                                                 f'{img_name}_{self.opt["val"]["suffix"]}.png')
+                                                 f'{img_name}_{self.opt["val"]["suffix"]}.tif')
                     else:
                         save_img_path = osp.join(self.opt['path']['visualization'], dataset_name,
-                                                 f'{img_name}_{self.opt["name"]}.png')
-                rs_imwrite(sr_img, save_img_path)
+                                                 f'{img_name}_{self.opt["name"]}.tif')
+                rs_imwrite(sr_img, save_img_path, new_profile)
+                print(f"Wrote {save_img_path}")
 
             if with_metrics:
                 # calculate metrics

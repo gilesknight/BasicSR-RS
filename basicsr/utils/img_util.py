@@ -115,7 +115,7 @@ def tensor2img(tensor, rgb2bgr=True, out_type=np.uint8, min_max=(0, 1)):
         result = result[0]
     return result
 
-def rs_tensor2img(tensor, bgrnir2rgb=True, out_type=np.uint16, min_max=(0, 1)):
+def rs_tensor2img(tensor, bgrnir2rgb=False, out_type=np.uint16, min_max=(0, 1)):
     """Convert torch Tensors into image numpy arrays.
 
     After clamping to [min, max], values will be normalized to [0, 1].
@@ -145,7 +145,6 @@ def rs_tensor2img(tensor, bgrnir2rgb=True, out_type=np.uint16, min_max=(0, 1)):
     for _tensor in tensor:
         _tensor = _tensor.squeeze(0).float().detach().cpu().clamp(*min_max)
         _tensor = (_tensor - min_max[0]) / (min_max[1] - min_max[0])
-
         n_dim = _tensor.dim()
         if n_dim == 4:
             img_np = make_grid(_tensor, nrow=int(math.sqrt(_tensor.size(0))), normalize=False).numpy()
@@ -258,17 +257,17 @@ def rs_imwrite(img, file_path, profile={}, auto_mkdir=True):
         dir_name = os.path.abspath(os.path.dirname(file_path))
         os.makedirs(dir_name, exist_ok=True)
     img = np.moveaxis(img, -1, 0)
-    profile.update(
-        {
-            "count": img.shape[0],
-            "height": img.shape[-2],
-            "width": img.shape[-1],
-            "driver": "GTiff",
-            "dtype": np.uint16,
-            "nodata": 0,
-            "crs": "EPSG:32750"
-        }
-    )
+    # profile.update(
+    #     {
+    #         "count": img.shape[0],
+    #         "height": img.shape[-2],
+    #         "width": img.shape[-1],
+    #         "driver": "GTiff",
+    #         "dtype": np.uint16,
+    #         "nodata": 0,
+    #         "crs": "EPSG:32750"
+    #     }
+    # )
     with rasterio.open(file_path, "w", **profile) as dataset:
         dataset.write(img)
         ok = True
