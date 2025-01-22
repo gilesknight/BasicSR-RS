@@ -284,7 +284,7 @@ class SRModelRS(BaseModel):
     """Base SR model for single image super-resolution."""
 
     def __init__(self, opt):
-        super(SRModel, self).__init__(opt)
+        super(SRModelRS, self).__init__(opt)
 
         # define network
         self.net_g = build_network(opt['network_g'])

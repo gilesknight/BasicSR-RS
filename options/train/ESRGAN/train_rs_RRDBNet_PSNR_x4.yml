@@ -8,10 +8,10 @@ manual_seed: 0
 # dataset and data loader settings
 datasets:
   train:
-    name: DIV2K
+    name: patches_128_mini
     type: RSPairedImageDataset
-    dataroot_gt: datasets/DIV2K/DIV2K_train_HR_sub
-    dataroot_lq: datasets/DIV2K/DIV2K_train_LR_bicubic/X4_sub
+    dataroot_gt: datasets/patches_128_mini/targets
+    dataroot_lq: datasets/patches_128_mini/inputs
     # (for lmdb)
     # dataroot_gt: datasets/DIV2K/DIV2K_train_HR_sub.lmdb
     # dataroot_lq: datasets/DIV2K/DIV2K_train_LR_bicubic_X4_sub.lmdb
@@ -32,10 +32,10 @@ datasets:
     prefetch_mode: ~
 
   val:
-    name: Set5
+    name: patches_128_mini
     type: RSPairedImageDataset
-    dataroot_gt: datasets/Set5/GTmod12
-    dataroot_lq: datasets/Set5/LRbicx4
+    dataroot_gt: datasets/patches_128_mini/targets
+    dataroot_lq: datasets/patches_128_mini/inputs
     io_backend:
       type: disk
 
@@ -81,7 +81,7 @@ train:
 # validation settings
 val:
   val_freq: !!float 5e3
-  save_img: false
+  save_img: true
 
   metrics:
     psnr: # metric name, can be arbitrary

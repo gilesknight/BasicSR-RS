@@ -1,6 +1,7 @@
 import cv2
 import random
 import torch
+import numpy as np
 
 
 def mod_crop(img, scale):
@@ -118,6 +119,7 @@ def augment(imgs, hflip=True, rotation=True, flows=None, return_status=False):
     rot90 = rotation and random.random() < 0.5
 
     def _augment(img):
+        print(img.dtype)
         if hflip:  # horizontal
             cv2.flip(img, 1, img)
         if vflip:  # vertical
@@ -157,6 +159,71 @@ def augment(imgs, hflip=True, rotation=True, flows=None, return_status=False):
         else:
             return imgs
 
+def rs_augment(imgs, hflip=True, rotation=True, flows=None, return_status=False):
+    """Augment: horizontal flips OR rotate (0, 90, 180, 270 degrees).
+
+    Uses NumPy operations for flipping and rotation instead of OpenCV.
+    All the images in the list use the same augmentation.
+
+    Args:
+        imgs (list[ndarray] | ndarray): Images to be augmented. If the input
+            is an ndarray, it will be transformed to a list.
+        hflip (bool): Horizontal flip. Default: True.
+        rotation (bool): Rotation. Default: True.
+        flows (list[ndarray]: Flows to be augmented. If the input is an
+            ndarray, it will be transformed to a list.
+            Dimension is (h, w, 2). Default: None.
+        return_status (bool): Return the status of flip and rotation.
+            Default: False.
+
+    Returns:
+        list[ndarray] | ndarray: Augmented images and flows. If returned
+            results only have one element, just return ndarray.
+    """
+    hflip = hflip and random.random() < 0.5
+    vflip = rotation and random.random() < 0.5
+    rot90 = rotation and random.random() < 0.5
+
+    def _augment(img):
+        if hflip:  # horizontal
+            img = np.flip(img, axis=1)
+        if vflip:  # vertical
+            img = np.flip(img, axis=0)
+        if rot90:
+            img = np.transpose(img, (1, 0, 2))
+        return img
+
+    def _augment_flow(flow):
+        if hflip:  # horizontal
+            flow = np.flip(flow, axis=1)
+            flow[:, :, 0] *= -1  # Reverse x-direction flow
+        if vflip:  # vertical
+            flow = np.flip(flow, axis=0)
+            flow[:, :, 1] *= -1  # Reverse y-direction flow
+        if rot90:
+            flow = np.transpose(flow, (1, 0, 2))
+            # Swap x and y components and adjust directions
+            flow = flow[:, :, [1, 0]]
+        return flow
+
+    if not isinstance(imgs, list):
+        imgs = [imgs]
+    imgs = [_augment(img) for img in imgs]
+    if len(imgs) == 1:
+        imgs = imgs[0]
+
+    if flows is not None:
+        if not isinstance(flows, list):
+            flows = [flows]
+        flows = [_augment_flow(flow) for flow in flows]
+        if len(flows) == 1:
+            flows = flows[0]
+        return imgs, flows
+    else:
+        if return_status:
+            return imgs, (hflip, vflip, rot90)
+        else:
+            return imgs
 
 def img_rotate(img, angle, center=None, scale=1.0):
     """Rotate image.

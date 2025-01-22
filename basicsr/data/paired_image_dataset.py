@@ -2,7 +2,7 @@ from torch.utils import data as data
 from torchvision.transforms.functional import normalize
 
 from basicsr.data.data_util import paired_paths_from_folder, paired_paths_from_lmdb, paired_paths_from_meta_info_file
-from basicsr.data.transforms import augment, paired_random_crop
+from basicsr.data.transforms import augment, paired_random_crop, rs_augment
 from basicsr.utils import FileClient, bgr2ycbcr, imfrombytes, img2tensor, rs_imfrombytes, rs_img2tensor
 from basicsr.utils.registry import DATASET_REGISTRY
 
@@ -135,15 +135,16 @@ class RSPairedImageDataset(data.Dataset):
     """
 
     def __init__(self, opt):
-        super(PairedImageDataset, self).__init__()
+        super(RSPairedImageDataset, self).__init__()
         self.opt = opt
+        print(opt)
         # file client (io backend)
         self.file_client = None
         self.io_backend_opt = opt['io_backend']
         self.mean = opt['mean'] if 'mean' in opt else None
         self.std = opt['std'] if 'std' in opt else None
-        self.gt_rescale_val = None
-        self.lq_rescale_val = None
+        self.gt_rescale_val = 1.0
+        self.lq_rescale_val = 1.0
 
         self.gt_folder, self.lq_folder = opt['dataroot_gt'], opt['dataroot_lq']
         if 'filename_tmpl' in opt:
@@ -186,7 +187,7 @@ class RSPairedImageDataset(data.Dataset):
             # random crop
             img_gt, img_lq = paired_random_crop(img_gt, img_lq, gt_size, scale, gt_path)
             # flip, rotation
-            img_gt, img_lq = augment([img_gt, img_lq], self.opt['use_hflip'], self.opt['use_rot'])
+            img_gt, img_lq = rs_augment([img_gt, img_lq], self.opt['use_hflip'], self.opt['use_rot'])
 
         # color space transform
         if 'color' in self.opt and self.opt['color'] == 'y':
