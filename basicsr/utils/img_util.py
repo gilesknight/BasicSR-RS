@@ -48,7 +48,7 @@ def rs_img2tensor(imgs, float32):
             one element, just return tensor.
     """
     def _totensor(img, float32):
-        img = torch.from_numpy(img.transpose(2, 0, 1))
+        img = torch.from_numpy(img.transpose(2, 0, 1).copy())
         if float32:
             img = img.float()
         return img
