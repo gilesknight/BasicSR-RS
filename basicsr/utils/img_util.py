@@ -165,6 +165,8 @@ def rs_tensor2img(tensor, bgrnir2rgb=False, out_type=np.uint16, min_max=(0, 1)):
             raise TypeError(f'Only support 4D, 3D or 2D tensor. But received with dimension: {n_dim}')
         if out_type == np.uint16:
             img_np = (img_np * 65535.0).round()
+        if out_type == np.int16:
+            img_np = (img_np * 32767.0).round()
         img_np = img_np.astype(out_type)
         result.append(img_np)
     if len(result) == 1:
@@ -208,7 +210,7 @@ def imfrombytes(content, flag='color', float32=False):
         img = img.astype(np.float32) / 255.
     return img
 
-def rs_imfrombytes(content, float32=False, rescale_val=1.0):
+def rs_imfrombytes(content, float32=False, dtype=np.uint16):
     """Read an remote sensing image from bytes.
 
     Args:
@@ -216,19 +218,24 @@ def rs_imfrombytes(content, float32=False, rescale_val=1.0):
         streams.
         float32 (bool): Whether to change to float32., If True, will also norm
             to [0, 1]. Default: False.
-        rescale_val (float):
-            Value that the image array will be divided by when normalising to
-            [0, 1]. Only used then float32 = True. Default: 1.0.
+        dtype (float):
+            Original data type ofthe image array. Used to determine the maximum
+            value to divide by when normalising to [0, 1]. Only used then
+            float32 = True. Default: np.uint16.
 
     Returns:
         ndarray: Loaded image array.
     """
 
+    rescale_vals = {
+        np.dtype(np.uint16): 65535.0,
+        np.dtype(np.int16): 32767.0
+    }
     with MemoryFile(content).open() as src:
         img = src.read()
         img = np.moveaxis(img, 0, -1)
     if float32:
-        img = img.astype(np.float32) / rescale_val
+        img = img.astype(np.float32) / rescale_vals[dtype]
     return img
 
 def imwrite(img, file_path, params=None, auto_mkdir=True):
@@ -257,17 +264,6 @@ def rs_imwrite(img, file_path, profile={}, auto_mkdir=True):
         dir_name = os.path.abspath(os.path.dirname(file_path))
         os.makedirs(dir_name, exist_ok=True)
     img = np.moveaxis(img, -1, 0)
-    # profile.update(
-    #     {
-    #         "count": img.shape[0],
-    #         "height": img.shape[-2],
-    #         "width": img.shape[-1],
-    #         "driver": "GTiff",
-    #         "dtype": np.uint16,
-    #         "nodata": 0,
-    #         "crs": "EPSG:32750"
-    #     }
-    # )
     with rasterio.open(file_path, "w", **profile) as dataset:
         dataset.write(img)
         ok = True

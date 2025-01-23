@@ -12,6 +12,8 @@ datasets:
     type: RSPairedImageDataset
     dataroot_gt: datasets/patches_128_mini/targets
     dataroot_lq: datasets/patches_128_mini/inputs
+    gt_dtype: int16
+    lq_dtype: uint16
     # (for lmdb)
     # dataroot_gt: datasets/DIV2K/DIV2K_train_HR_sub.lmdb
     # dataroot_lq: datasets/DIV2K/DIV2K_train_LR_bicubic_X4_sub.lmdb
@@ -36,6 +38,8 @@ datasets:
     type: RSPairedImageDataset
     dataroot_gt: datasets/patches_128_mini/targets
     dataroot_lq: datasets/patches_128_mini/inputs
+    gt_dtype: int16
+    lq_dtype: uint16
     io_backend:
       type: disk
 
@@ -80,7 +84,7 @@ train:
 
 # validation settings
 val:
-  val_freq: 100 #!!float 5e3
+  val_freq: 1000 #!!float 5e3
   save_img: true
 
   metrics:

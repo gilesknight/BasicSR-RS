@@ -1,6 +1,7 @@
 import torch
 import copy
 import rasterio
+import numpy as np
 from collections import OrderedDict
 from os import path as osp
 from tqdm import tqdm
@@ -471,16 +472,17 @@ class SRModelRS(BaseModel):
 
         for idx, val_data in enumerate(dataloader):
             img_path = val_data['lq_path'][0]
+            gt_dtype = self.opt['datasets']['val']['gt_dtype']
+            gt_dtype = np.dtype(gt_dtype)
             img_name = osp.splitext(osp.basename(img_path))[0]
             self.feed_data(val_data)
             self.test()
 
             visuals = self.get_current_visuals()
-            sr_img = rs_tensor2img([visuals['result']], False)
-            print(f"out_shape = {sr_img.shape}")
+            sr_img = rs_tensor2img([visuals['result']], False, out_type=gt_dtype)
             metric_data['img'] = sr_img
             if 'gt' in visuals:
-                gt_img = rs_tensor2img([visuals['gt']])
+                gt_img = rs_tensor2img([visuals['gt']], False, out_type=gt_dtype)
                 metric_data['img2'] = gt_img
                 del self.gt
 
@@ -504,6 +506,7 @@ class SRModelRS(BaseModel):
                 new_profile['transform'] = new_transform
                 new_profile['width'] = new_profile['width'] * self.opt['scale']
                 new_profile['height'] = new_profile['height'] * self.opt['scale']
+                new_profile['dtype'] = gt_dtype
                 if 'res' in new_profile:
                     new_profile['res'] = {
                         'x': new_profile['res']['x'] / self.opt['scale'],
@@ -520,7 +523,6 @@ class SRModelRS(BaseModel):
                         save_img_path = osp.join(self.opt['path']['visualization'], dataset_name,
                                                  f'{img_name}_{self.opt["name"]}.tif')
                 rs_imwrite(sr_img, save_img_path, new_profile)
-                print(f"Wrote {save_img_path}")
 
             if with_metrics:
                 # calculate metrics

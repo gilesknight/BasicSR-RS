@@ -1,3 +1,4 @@
+import numpy as np
 from torch.utils import data as data
 from torchvision.transforms.functional import normalize
 
@@ -137,14 +138,15 @@ class RSPairedImageDataset(data.Dataset):
     def __init__(self, opt):
         super(RSPairedImageDataset, self).__init__()
         self.opt = opt
-        print(opt)
         # file client (io backend)
         self.file_client = None
         self.io_backend_opt = opt['io_backend']
         self.mean = opt['mean'] if 'mean' in opt else None
         self.std = opt['std'] if 'std' in opt else None
-        self.gt_rescale_val = 1.0
-        self.lq_rescale_val = 1.0
+        self.gt_dtype = np.dtype(opt['gt_dtype'])
+        self.lq_dtype = np.dtype(opt['lq_dtype'])
+        print(f"gt_dtype {self.gt_dtype}")
+        print(f"lq_dtype {self.lq_dtype}")
 
         self.gt_folder, self.lq_folder = opt['dataroot_gt'], opt['dataroot_lq']
         if 'filename_tmpl' in opt:
@@ -173,12 +175,12 @@ class RSPairedImageDataset(data.Dataset):
         gt_path = self.paths[index]['gt_path']
         img_bytes = self.file_client.get(gt_path, 'gt')
         img_gt = rs_imfrombytes(
-            img_bytes, float32=True, rescale_val=self.gt_rescale_val
+            img_bytes, float32=True, dtype=self.gt_dtype
         )
         lq_path = self.paths[index]['lq_path']
         img_bytes = self.file_client.get(lq_path, 'lq')
         img_lq = rs_imfrombytes(
-            img_bytes, float32=True, rescale_val=self.lq_rescale_val
+            img_bytes, float32=True, dtype=self.lq_dtype
         )
 
         # augmentation for training
