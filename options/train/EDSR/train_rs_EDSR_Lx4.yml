@@ -1,19 +1,23 @@
 # general settings
-name: 051_RRDBNet_PSNR_x4_f64b23_DIV2K_1000k_B16G1_wandb
+name: 001_EDSRRS_Lx4_f256b32_UM2018_UM2018_128_300k_B16G1
 model_type: SRModelRS
 scale: 4
 num_gpu: 1  # set num_gpu: 0 for cpu mode
-manual_seed: 0
+manual_seed: 10
 
 # dataset and data loader settings
 datasets:
   train:
-    name: patches_128_mini
+    name: UM2018_UM2018_128_train
     type: RSPairedImageDataset
-    dataroot_gt: datasets/patches_128_mini/targets
-    dataroot_lq: datasets/patches_128_mini/inputs
+    dataroot_gt: datasets/UM2018_UM2018_128/train/targets
+    dataroot_lq: datasets/UM2018_UM2018_128/train/inputs
+    gt_rescale_val: 10000
+    lq_rescale_val: 10000
     gt_dtype: int16
     lq_dtype: uint16
+    gt_clip: true
+    lq_clip: true
     # (for lmdb)
     # dataroot_gt: datasets/DIV2K/DIV2K_train_HR_sub.lmdb
     # dataroot_lq: datasets/DIV2K/DIV2K_train_LR_bicubic_X4_sub.lmdb
@@ -30,27 +34,34 @@ datasets:
     # data loader
     num_worker_per_gpu: 6
     batch_size_per_gpu: 16
-    dataset_enlarge_ratio: 100
+    dataset_enlarge_ratio: 1
     prefetch_mode: ~
 
   val:
-    name: patches_128_mini
+    name: UM2018_UM2018_128_val
     type: RSPairedImageDataset
-    dataroot_gt: datasets/patches_128_mini/targets
-    dataroot_lq: datasets/patches_128_mini/inputs
+    dataroot_gt: datasets/UM2018_UM2018_128/valid/targets
+    dataroot_lq: datasets/UM2018_UM2018_128/valid/inputs
+    gt_rescale_val: 10000
+    lq_rescale_val: 10000
     gt_dtype: int16
     lq_dtype: uint16
+    gt_clip: true
+    lq_clip: true
     io_backend:
       type: disk
 
 # network structures
 network_g:
-  type: RRDBNet
+  type: EDSRRS
   num_in_ch: 4
   num_out_ch: 4
-  num_feat: 64
-  num_block: 23
-  num_grow_ch: 32
+  num_feat: 256
+  num_block: 32
+  upscale: 4
+  res_scale: 0.1
+  img_range: 10000.
+  bgrnir_mean: [0.2017, 0.1876, 0.1822, 0.4533]
 
 # path
 path:
@@ -63,17 +74,16 @@ train:
   ema_decay: 0.999
   optim_g:
     type: Adam
-    lr: !!float 2e-4
+    lr: !!float 1e-4
     weight_decay: 0
     betas: [0.9, 0.99]
 
   scheduler:
-    type: CosineAnnealingRestartLR
-    periods: [250000, 250000, 250000, 250000]
-    restart_weights: [1, 1, 1, 1]
-    eta_min: !!float 1e-7
+    type: MultiStepLR
+    milestones: [200000]
+    gamma: 0.5
 
-  total_iter: 1000000
+  total_iter: 300000
   warmup_iter: -1  # no warm up
 
   # losses
@@ -84,19 +94,20 @@ train:
 
 # validation settings
 val:
-  val_freq: !!float 5e3
+  val_freq: 1000 #!!float 5e3
   save_img: true
 
   metrics:
     psnr: # metric name, can be arbitrary
-      type: calculate_psnr
+      type: calculate_psnr_rs
       crop_border: 4
       test_y_channel: false
+      max_pixel: 10000
 
 # logging settings
 logger:
   print_freq: 100
-  save_checkpoint_freq: !!float 5e3
+  save_checkpoint_freq: 1000 #!!float 5e3
   use_tb_logger: true
   wandb:
     project: ~

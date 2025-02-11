@@ -115,7 +115,10 @@ def tensor2img(tensor, rgb2bgr=True, out_type=np.uint8, min_max=(0, 1)):
         result = result[0]
     return result
 
-def rs_tensor2img(tensor, bgrnir2rgb=False, out_type=np.uint16, min_max=(0, 1)):
+def rs_tensor2img(
+        tensor, bgrnir2rgb=False, rescale_val=1.0,
+        out_type=np.uint16, min_max=(0, 1)
+    ):
     """Convert torch Tensors into image numpy arrays.
 
     After clamping to [min, max], values will be normalized to [0, 1].
@@ -164,9 +167,9 @@ def rs_tensor2img(tensor, bgrnir2rgb=False, out_type=np.uint16, min_max=(0, 1)):
         else:
             raise TypeError(f'Only support 4D, 3D or 2D tensor. But received with dimension: {n_dim}')
         if out_type == np.uint16:
-            img_np = (img_np * 65535.0).round()
+            img_np = (img_np * rescale_val).round() #65535.0
         if out_type == np.int16:
-            img_np = (img_np * 32767.0).round()
+            img_np = (img_np * rescale_val).round() #32767.0
         img_np = img_np.astype(out_type)
         result.append(img_np)
     if len(result) == 1:
@@ -210,7 +213,7 @@ def imfrombytes(content, flag='color', float32=False):
         img = img.astype(np.float32) / 255.
     return img
 
-def rs_imfrombytes(content, float32=False, dtype=np.uint16):
+def rs_imfrombytes(content, float32=False, rescale_val=1.0, dtype=np.uint16, clip=False):
     """Read an remote sensing image from bytes.
 
     Args:
@@ -218,8 +221,10 @@ def rs_imfrombytes(content, float32=False, dtype=np.uint16):
         streams.
         float32 (bool): Whether to change to float32., If True, will also norm
             to [0, 1]. Default: False.
+        rescale_val (float): Value to divide by when normalising data to [0, 1].
+            Only used when `float32` = True. Default is 1.0.
         dtype (float):
-            Original data type ofthe image array. Used to determine the maximum
+            Original data type of the image array. Used to determine the maximum
             value to divide by when normalising to [0, 1]. Only used then
             float32 = True. Default: np.uint16.
 
@@ -229,13 +234,16 @@ def rs_imfrombytes(content, float32=False, dtype=np.uint16):
 
     rescale_vals = {
         np.dtype(np.uint16): 65535.0,
-        np.dtype(np.int16): 32767.0
+        np.dtype(np.int16): 32767.0,
+        "um_data": 10000
     }
     with MemoryFile(content).open() as src:
         img = src.read()
         img = np.moveaxis(img, 0, -1)
     if float32:
-        img = img.astype(np.float32) / rescale_vals[dtype]
+        img = img.astype(np.float32) / rescale_val
+    if clip:
+        img = np.clip(img, 0, 1)
     return img
 
 def imwrite(img, file_path, params=None, auto_mkdir=True):

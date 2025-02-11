@@ -474,15 +474,20 @@ class SRModelRS(BaseModel):
             img_path = val_data['lq_path'][0]
             gt_dtype = self.opt['datasets']['val']['gt_dtype']
             gt_dtype = np.dtype(gt_dtype)
+            gt_rescale = self.opt['datasets']['val']['gt_rescale_val']
             img_name = osp.splitext(osp.basename(img_path))[0]
             self.feed_data(val_data)
             self.test()
 
             visuals = self.get_current_visuals()
-            sr_img = rs_tensor2img([visuals['result']], False, out_type=gt_dtype)
+            sr_img = rs_tensor2img(
+                [visuals['result']], False, gt_rescale, out_type=gt_dtype
+            )
             metric_data['img'] = sr_img
             if 'gt' in visuals:
-                gt_img = rs_tensor2img([visuals['gt']], False, out_type=gt_dtype)
+                gt_img = rs_tensor2img(
+                    [visuals['gt']], False, gt_rescale, out_type=gt_dtype
+                )
                 metric_data['img2'] = gt_img
                 del self.gt
 
