@@ -42,9 +42,6 @@ def calculate_psnr_rs(img, img2, crop_border, max_pixel, input_order='HWC', test
 
     img = img.astype(np.float64)
     img2 = img2.astype(np.float64)
-
-    print(f"img max: {np.max(img)} img2 max: {np.max(img2)}")
-
     mse = np.mean((img - img2)**2)
     if mse == 0:
         return float('inf')
@@ -170,6 +167,53 @@ def calculate_ssim(img, img2, crop_border, input_order='HWC', test_y_channel=Fal
         ssims.append(_ssim(img[..., i], img2[..., i]))
     return np.array(ssims).mean()
 
+@METRIC_REGISTRY.register()
+def calculate_ssim_rs(img, img2, crop_border, max_pixel, input_order='HWC', test_y_channel=False, **kwargs):
+    """Calculate SSIM (structural similarity).
+
+    ``Paper: Image quality assessment: From error visibility to structural similarity``
+
+    The results are the same as that of the official released MATLAB code in
+    https://ece.uwaterloo.ca/~z70wang/research/ssim/.
+
+    For three-channel images, SSIM is calculated for each channel and then
+    averaged.
+
+    Args:
+        img (ndarray): Images with range [0, max_pixel].
+        img2 (ndarray): Images with range [0, max_pixel].
+        crop_border (int): Cropped pixels in each edge of an image. These pixels are not involved in the calculation.
+        input_order (str): Whether the input order is 'HWC' or 'CHW'.
+            Default: 'HWC'.
+        max_pixel (float): The maximum possible pixel value.
+        test_y_channel (bool): Test on Y channel of YCbCr. Default: False.
+
+    Returns:
+        float: SSIM result.
+    """
+
+    assert img.shape == img2.shape, (f'Image shapes are different: {img.shape}, {img2.shape}.')
+    if input_order not in ['HWC', 'CHW']:
+        raise ValueError(f'Wrong input_order {input_order}. Supported input_orders are "HWC" and "CHW"')
+    img = reorder_image(img, input_order=input_order)
+    img2 = reorder_image(img2, input_order=input_order)
+
+    if crop_border != 0:
+        img = img[crop_border:-crop_border, crop_border:-crop_border, ...]
+        img2 = img2[crop_border:-crop_border, crop_border:-crop_border, ...]
+
+    if test_y_channel:
+        img = to_y_channel(img)
+        img2 = to_y_channel(img2)
+
+    img = img.astype(np.float64)
+    img2 = img2.astype(np.float64)
+
+    ssims = []
+    for i in range(img.shape[2]):
+        ssims.append(_ssim_rs(img[..., i], img2[..., i], max_pixel))
+    return np.array(ssims).mean()
+
 
 @METRIC_REGISTRY.register()
 def calculate_ssim_pt(img, img2, crop_border, test_y_channel=False, **kwargs):
@@ -225,6 +269,37 @@ def _ssim(img, img2):
 
     c1 = (0.01 * 255)**2
     c2 = (0.03 * 255)**2
+    kernel = cv2.getGaussianKernel(11, 1.5)
+    window = np.outer(kernel, kernel.transpose())
+
+    mu1 = cv2.filter2D(img, -1, window)[5:-5, 5:-5]  # valid mode for window size 11
+    mu2 = cv2.filter2D(img2, -1, window)[5:-5, 5:-5]
+    mu1_sq = mu1**2
+    mu2_sq = mu2**2
+    mu1_mu2 = mu1 * mu2
+    sigma1_sq = cv2.filter2D(img**2, -1, window)[5:-5, 5:-5] - mu1_sq
+    sigma2_sq = cv2.filter2D(img2**2, -1, window)[5:-5, 5:-5] - mu2_sq
+    sigma12 = cv2.filter2D(img * img2, -1, window)[5:-5, 5:-5] - mu1_mu2
+
+    ssim_map = ((2 * mu1_mu2 + c1) * (2 * sigma12 + c2)) / ((mu1_sq + mu2_sq + c1) * (sigma1_sq + sigma2_sq + c2))
+    return ssim_map.mean()
+
+def _ssim_rs(img, img2, max_pixel):
+    """Calculate SSIM (structural similarity) for one channel images.
+
+    It is called by func:`calculate_ssim`.
+
+    Args:
+        img (ndarray): Images with range [0, max_pixel] with order 'HWC'.
+        img2 (ndarray): Images with range [0, max_pixel] with order 'HWC'.
+        max_pixel (float): The max pixel_value
+
+    Returns:
+        float: SSIM result.
+    """
+
+    c1 = (0.01 * max_pixel)**2
+    c2 = (0.03 * max_pixel)**2
     kernel = cv2.getGaussianKernel(11, 1.5)
     window = np.outer(kernel, kernel.transpose())
 

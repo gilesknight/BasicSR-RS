@@ -1,3 +1,4 @@
+import rasterio
 from os import path as osp
 from PIL import Image
 
@@ -29,6 +30,22 @@ def generate_meta_info_div2k():
             print(idx + 1, info)
             f.write(f'{info}\n')
 
+def generate_meta_info_UM2018_UM2018_128():
+
+    # gt_folder = 'datasets/UM2018_UM2018_128/train/targets/'
+    # meta_info_txt = 'basicsr/data/meta_info/meta_info_UM2018_UM2018_128.txt'
+
+    gt_folder = "datasets/PS_UM2020_128_div8/valid/targets/"
+    meta_info_txt = 'basicsr/data/meta_info/meta_info_PS_UM2020_128_div8_valid.txt'
+
+    img_list = sorted(list(scandir(gt_folder)))
+    with open(meta_info_txt, 'w') as f:
+        for idx, img_path in enumerate(img_list):
+            with rasterio.open(gt_folder + img_path) as src:
+                info = f'{img_path} ({src.height},{src.width},{src.count})'
+            print(idx + 1, info)
+            f.write(f'{info}\n')
 
 if __name__ == '__main__':
-    generate_meta_info_div2k()
+    #generate_meta_info_div2k()
+    generate_meta_info_UM2018_UM2018_128()

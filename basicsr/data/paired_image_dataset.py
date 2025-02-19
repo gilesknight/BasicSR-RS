@@ -4,9 +4,9 @@ from torchvision.transforms.functional import normalize
 
 from basicsr.data.data_util import paired_paths_from_folder, paired_paths_from_lmdb, paired_paths_from_meta_info_file
 from basicsr.data.transforms import augment, paired_random_crop, rs_augment
-from basicsr.utils import FileClient, bgr2ycbcr, imfrombytes, img2tensor, rs_imfrombytes, rs_img2tensor
+from basicsr.utils import FileClient, bgr2ycbcr, imfrombytes, img2tensor, rs_imfrombytes, rs_img2tensor, RasterioReader
 from basicsr.utils.registry import DATASET_REGISTRY
-
+from skimage.exposure import match_histograms
 
 @DATASET_REGISTRY.register()
 class PairedImageDataset(data.Dataset):
@@ -145,10 +145,10 @@ class RSPairedImageDataset(data.Dataset):
         self.std = opt['std'] if 'std' in opt else None
         self.gt_rescale_val = opt['gt_rescale_val']
         self.lq_rescale_val = opt['lq_rescale_val']
-        print(f"gt_rescale_val {self.gt_rescale_val}")
-        print(f"lq_rescale_val {self.lq_rescale_val}")
         self.gt_clip = opt["gt_clip"]
         self.lq_clip = opt["lq_clip"]
+
+        self.rasterio_reader = RasterioReader()
 
         self.gt_folder, self.lq_folder = opt['dataroot_gt'], opt['dataroot_lq']
         if 'filename_tmpl' in opt:
@@ -177,12 +177,12 @@ class RSPairedImageDataset(data.Dataset):
         gt_path = self.paths[index]['gt_path']
         img_bytes = self.file_client.get(gt_path, 'gt')
         img_gt = rs_imfrombytes(
-            img_bytes, float32=True, rescale_val=self.gt_rescale_val, clip=self.gt_clip
+            img_bytes, self.rasterio_reader, float32=True, rescale_val=self.gt_rescale_val, clip=self.gt_clip
         )
         lq_path = self.paths[index]['lq_path']
         img_bytes = self.file_client.get(lq_path, 'lq')
         img_lq = rs_imfrombytes(
-            img_bytes, float32=True, rescale_val=self.lq_rescale_val, clip=self.lq_clip
+            img_bytes, self.rasterio_reader, float32=True, rescale_val=self.lq_rescale_val, clip=self.lq_clip
         )
 
         # augmentation for training
@@ -204,7 +204,7 @@ class RSPairedImageDataset(data.Dataset):
             img_gt = img_gt[0:img_lq.shape[0] * scale, 0:img_lq.shape[1] * scale, :]
 
         # BGR to RGB, HWC to CHW, numpy to tensor
-        img_gt, img_lq = rs_img2tensor([img_gt, img_lq], float32=True)
+        img_gt, img_lq = rs_img2tensor([img_gt, img_lq], float32=True, bf16=False)
         # normalize
         if self.mean is not None or self.std is not None:
             normalize(img_lq, self.mean, self.std, inplace=True)

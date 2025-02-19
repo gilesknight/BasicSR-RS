@@ -6,6 +6,7 @@ import torch
 import rasterio
 from torchvision.utils import make_grid
 from rasterio.io import MemoryFile
+from contextlib import contextmanager
 
 
 def img2tensor(imgs, bgr2rgb=True, float32=True):
@@ -36,7 +37,7 @@ def img2tensor(imgs, bgr2rgb=True, float32=True):
     else:
         return _totensor(imgs, bgr2rgb, float32)
 
-def rs_img2tensor(imgs, float32):
+def rs_img2tensor(imgs, float32, bf16):
     """Remote sensing numpy array to tensor.
 
     Args:
@@ -47,13 +48,15 @@ def rs_img2tensor(imgs, float32):
         list[tensor] | tensor: Tensor images. If returned results only have
             one element, just return tensor.
     """
-    def _totensor(img, float32):
+    def _totensor(img, float32, bf16):
         img = torch.from_numpy(img.transpose(2, 0, 1).copy())
         if float32:
             img = img.float()
+        if bf16:
+            img = img.bfloat16()
         return img
     if isinstance(imgs, list):
-        return [_totensor(img, float32) for img in imgs]
+        return [_totensor(img, float32, bf16) for img in imgs]
     else:
         return _totensor(imgs, float32)
 
@@ -167,9 +170,9 @@ def rs_tensor2img(
         else:
             raise TypeError(f'Only support 4D, 3D or 2D tensor. But received with dimension: {n_dim}')
         if out_type == np.uint16:
-            img_np = (img_np * rescale_val).round() #65535.0
+            img_np = (img_np * rescale_val).round()
         if out_type == np.int16:
-            img_np = (img_np * rescale_val).round() #32767.0
+            img_np = (img_np * rescale_val).round()
         img_np = img_np.astype(out_type)
         result.append(img_np)
     if len(result) == 1:
@@ -213,12 +216,34 @@ def imfrombytes(content, flag='color', float32=False):
         img = img.astype(np.float32) / 255.
     return img
 
-def rs_imfrombytes(content, float32=False, rescale_val=1.0, dtype=np.uint16, clip=False):
+class RasterioReader:
+    def __init__(self):
+        self._memfile = None
+
+    @contextmanager
+    def read_bytes(self, content):
+        # Close previous MemoryFile if it exists
+        if self._memfile is not None:
+            self._memfile.close()
+
+        # Create new MemoryFile for each read
+        self._memfile = MemoryFile(content)
+        with self._memfile.open() as src:
+            yield src
+
+    def __del__(self):
+        if self._memfile is not None:
+            self._memfile.close()
+
+def rs_imfrombytes(
+        content, reader, float32=False,
+        rescale_val=1.0, dtype=np.uint16, clip=False):
     """Read an remote sensing image from bytes.
 
     Args:
         content (bytes): Remote sensing image bytes got from files or other
         streams.
+        reader (RasterioReader): A `RasterioReader` object.
         float32 (bool): Whether to change to float32., If True, will also norm
             to [0, 1]. Default: False.
         rescale_val (float): Value to divide by when normalising data to [0, 1].
@@ -231,13 +256,7 @@ def rs_imfrombytes(content, float32=False, rescale_val=1.0, dtype=np.uint16, cli
     Returns:
         ndarray: Loaded image array.
     """
-
-    rescale_vals = {
-        np.dtype(np.uint16): 65535.0,
-        np.dtype(np.int16): 32767.0,
-        "um_data": 10000
-    }
-    with MemoryFile(content).open() as src:
+    with reader.read_bytes(content) as src:
         img = src.read()
         img = np.moveaxis(img, 0, -1)
     if float32:
@@ -245,6 +264,39 @@ def rs_imfrombytes(content, float32=False, rescale_val=1.0, dtype=np.uint16, cli
     if clip:
         img = np.clip(img, 0, 1)
     return img
+
+# def rs_imfrombytes(content, float32=False, rescale_val=1.0, dtype=np.uint16, clip=False):
+    # """Read an remote sensing image from bytes.
+
+    # Args:
+    #     content (bytes): Remote sensing image bytes got from files or other
+    #     streams.
+    #     float32 (bool): Whether to change to float32., If True, will also norm
+    #         to [0, 1]. Default: False.
+    #     rescale_val (float): Value to divide by when normalising data to [0, 1].
+    #         Only used when `float32` = True. Default is 1.0.
+    #     dtype (float):
+    #         Original data type of the image array. Used to determine the maximum
+    #         value to divide by when normalising to [0, 1]. Only used then
+    #         float32 = True. Default: np.uint16.
+
+    # Returns:
+    #     ndarray: Loaded image array.
+    # """
+
+#     rescale_vals = {
+#         np.dtype(np.uint16): 65535.0,
+#         np.dtype(np.int16): 32767.0,
+#         "um_data": 10000
+#     }
+#     with MemoryFile(content).open() as src:
+#         img = src.read()
+#         img = np.moveaxis(img, 0, -1)
+#     if float32:
+#         img = img.astype(np.float32) / rescale_val
+#     if clip:
+#         img = np.clip(img, 0, 1)
+#     return img
 
 def imwrite(img, file_path, params=None, auto_mkdir=True):
     """Write image to file.

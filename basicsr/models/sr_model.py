@@ -472,9 +472,9 @@ class SRModelRS(BaseModel):
 
         for idx, val_data in enumerate(dataloader):
             img_path = val_data['lq_path'][0]
-            gt_dtype = self.opt['datasets']['val']['gt_dtype']
+            gt_dtype = self.opt['rs_options']['datasets']['gt_dtype']
             gt_dtype = np.dtype(gt_dtype)
-            gt_rescale = self.opt['datasets']['val']['gt_rescale_val']
+            gt_rescale = self.opt['rs_options']['datasets']['gt_rescale_val']
             img_name = osp.splitext(osp.basename(img_path))[0]
             self.feed_data(val_data)
             self.test()

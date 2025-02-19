@@ -1,5 +1,5 @@
 # general settings
-name: 001_EDSRRS_Lx4_f256b32_UM2018_UM2018_128_300k_B16G1
+name: 004_EDSRRS_Lx4_f256b32_PS_UM2020_128_100000k_B16G1
 model_type: SRModelRS
 scale: 4
 num_gpu: 1  # set num_gpu: 0 for cpu mode
@@ -8,48 +8,41 @@ manual_seed: 10
 # dataset and data loader settings
 datasets:
   train:
-    name: UM2018_UM2018_128_train
+    name: PS_UM2020_128_train
     type: RSPairedImageDataset
-    dataroot_gt: datasets/UM2018_UM2018_128/train/targets
-    dataroot_lq: datasets/UM2018_UM2018_128/train/inputs
-    gt_rescale_val: 10000
-    lq_rescale_val: 10000
-    gt_dtype: int16
-    lq_dtype: uint16
-    gt_clip: true
-    lq_clip: true
-    # (for lmdb)
-    # dataroot_gt: datasets/DIV2K/DIV2K_train_HR_sub.lmdb
-    # dataroot_lq: datasets/DIV2K/DIV2K_train_LR_bicubic_X4_sub.lmdb
+    dataroot_gt: datasets/PS_UM2020_128/train/targets
+    dataroot_lq: datasets/PS_UM2020_128/train/inputs
+    meta_info_file: basicsr/data/meta_info/meta_info_PS_UM2020_128.txt
     filename_tmpl: '{}'
     io_backend:
       type: disk
-      # (for lmdb)
-      # type: lmdb
-
     gt_size: 128
     use_hflip: true
     use_rot: true
 
     # data loader
-    num_worker_per_gpu: 6
+    num_worker_per_gpu: 1
     batch_size_per_gpu: 16
     dataset_enlarge_ratio: 1
     prefetch_mode: ~
 
   val:
-    name: UM2018_UM2018_128_val
+    name: PS_UM2020_128_div8_val
     type: RSPairedImageDataset
-    dataroot_gt: datasets/UM2018_UM2018_128/valid/targets
-    dataroot_lq: datasets/UM2018_UM2018_128/valid/inputs
+    dataroot_gt: datasets/PS_UM2020_128_div8/valid/targets/
+    dataroot_lq: datasets/PS_UM2020_128_div8/valid/inputs/
+    meta_info_file: basicsr/data/meta_info/meta_info_PS_UM2020_128_div8_valid.txt
+    io_backend:
+      type: disk
+
+rs_options:
+  datasets:
     gt_rescale_val: 10000
     lq_rescale_val: 10000
     gt_dtype: int16
     lq_dtype: uint16
     gt_clip: true
     lq_clip: true
-    io_backend:
-      type: disk
 
 # network structures
 network_g:
@@ -61,29 +54,29 @@ network_g:
   upscale: 4
   res_scale: 0.1
   img_range: 10000.
-  bgrnir_mean: [0.2017, 0.1876, 0.1822, 0.4533]
+  bgrnir_mean: [0.0614, 0.0914, 0.1265, 0.2484]
 
 # path
 path:
-  pretrain_network_g: ~
+  pretrain_network_g: experiments/003_EDSRRS_Lx4_f256b32_UM2018_UM2018_128_100000k_B16G1/models/net_g_100000.pth
   strict_load_g: true
   resume_state: ~
 
 # training settings
 train:
-  ema_decay: 0.999
+  ema_decay: 0 #0.999
   optim_g:
     type: Adam
-    lr: !!float 1e-4
+    lr: 0.0001 #!!float 1e-4
     weight_decay: 0
     betas: [0.9, 0.99]
 
   scheduler:
     type: MultiStepLR
-    milestones: [200000]
+    milestones: [66666]
     gamma: 0.5
 
-  total_iter: 300000
+  total_iter: 100000
   warmup_iter: -1  # no warm up
 
   # losses
@@ -94,8 +87,8 @@ train:
 
 # validation settings
 val:
-  val_freq: 1000 #!!float 5e3
-  save_img: true
+  val_freq: 1000 #21537 #!!float 5e3
+  save_img: false
 
   metrics:
     psnr: # metric name, can be arbitrary
@@ -106,8 +99,8 @@ val:
 
 # logging settings
 logger:
-  print_freq: 100
-  save_checkpoint_freq: 1000 #!!float 5e3
+  print_freq: 10
+  save_checkpoint_freq: 20000 #!!float 5e3
   use_tb_logger: true
   wandb:
     project: ~
