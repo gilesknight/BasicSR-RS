@@ -5,13 +5,14 @@ from scripts.plot import rs_plots
 
 DATASET = "PS_UM2020_128"
 SUBSET = "test_dams"
-EXPERIMENT = "004_EDSRRS_Lx4_f256b32_PS_UM2020_128_20000k_B16G"
-NIR=False
+EXPERIMENT = "003_EDSRRS_Lx4_f256b32_UM2018_UM2018_128_100000k_B16G1"
+NIR=True
 
 
 inputs_dir = f"datasets/{DATASET}/{SUBSET}/inputs/"
 targets_dir = f"datasets/{DATASET}/{SUBSET}/targets/"
-preds_dir = f"results/{EXPERIMENT}/visualization/{DATASET}_{SUBSET}/"
+preds_dir = f"results/{EXPERIMENT}_{SUBSET}/visualization/{DATASET}_{SUBSET}/"
+preds_dir = f"results/003_EDSRRS_Lx4_f256b32_UM2018_UM2018_128_100000k_B16G1_PS_UM2020_128_test_dams/visualization/PS_UM2020_128_test_dams/"
 inputs = sorted(
     [os.path.join(inputs_dir, fname)
      for fname in os.listdir(inputs_dir)

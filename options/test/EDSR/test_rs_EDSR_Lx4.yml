@@ -1,4 +1,4 @@
-name: 004_EDSRRS_Lx4_f256b32_PS_UM2020_128_20000k_B16G
+name: 003_EDSRRS_Lx4_f256b32_UM2018_UM2018_128_100000k_B16G1
 model_type: SRModelRS
 scale: 4
 num_gpu: 1  # set num_gpu: 0 for cpu mode
@@ -44,7 +44,7 @@ network_g:
 
 # path
 path:
-  pretrain_network_g: experiments/004_EDSRRS_Lx4_f256b32_PS_UM2020_128_20000k_B16G1/models/net_g_20000.pth
+  pretrain_network_g: experiments/003_EDSRRS_Lx4_f256b32_UM2018_UM2018_128_100000k_B16G1/models/net_g_100000.pth
   strict_load_g: true
 
 # validation settings
