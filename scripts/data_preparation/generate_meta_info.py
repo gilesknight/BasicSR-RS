@@ -35,8 +35,8 @@ def generate_meta_info_UM2018_UM2018_128():
     # gt_folder = 'datasets/UM2018_UM2018_128/train/targets/'
     # meta_info_txt = 'basicsr/data/meta_info/meta_info_UM2018_UM2018_128.txt'
 
-    gt_folder = "datasets/PS_UM2020_128_div8/valid/targets/"
-    meta_info_txt = 'basicsr/data/meta_info/meta_info_PS_UM2020_128_div8_valid.txt'
+    gt_folder = "datasets/UM2018_UM2018_128_div8/valid/targets/"
+    meta_info_txt = 'basicsr/data/meta_info/meta_info_UM2018_UM2018_128_div8_valid.txt'
 
     img_list = sorted(list(scandir(gt_folder)))
     with open(meta_info_txt, 'w') as f:

@@ -6,8 +6,6 @@
 		"all",
 		"--shm-size=16g"
 	],
-	"mounts": [
-	],
 	"customizations": {
 		"vscode": {
 			"extensions": [

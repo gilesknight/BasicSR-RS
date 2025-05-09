@@ -147,6 +147,7 @@ class VGGFeatureExtractor(nn.Module):
         Returns:
             Tensor: Forward results.
         """
+        x = x[:, [2, 1, 0], :, :] # Drops NIR and reorders channels to RGB
         if self.range_norm:
             x = (x + 1) / 2
         if self.use_input_norm:
