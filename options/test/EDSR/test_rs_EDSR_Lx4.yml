@@ -8,8 +8,8 @@ datasets:
   test_1:  # the 1st test dataset
     name: PS_UM2020_128_test
     type: RSPairedImageDataset
-    dataroot_gt: datasets/PS_UM2020_128/test/targets
-    dataroot_lq: datasets/PS_UM2020_128/test/inputs
+    dataroot_gt: datasets/PS_UM2020_128/test_dams_only/targets
+    dataroot_lq: datasets/PS_UM2020_128/test_dams_only/inputs
     io_backend:
       type: disk
 

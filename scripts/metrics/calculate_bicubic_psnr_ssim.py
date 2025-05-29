@@ -56,8 +56,8 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--gt', type=str, default='datasets/PS_UM2020_128/test_dams/targets', help='Path to gt (Ground-Truth)')
-    parser.add_argument('--lq', type=str, default='datasets/PS_UM2020_128/test_dams/inputs', help='Path to lq')
+    parser.add_argument('--gt', type=str, default='datasets/PS_UM2020_128/test_dams_only/targets', help='Path to gt (Ground-Truth)')
+    parser.add_argument('--lq', type=str, default='datasets/PS_UM2020_128/test_dams_only/inputs', help='Path to lq')
     parser.add_argument('--crop_border', type=int, default=4, help='Crop border for each side')
     args = parser.parse_args()
     main(args)
