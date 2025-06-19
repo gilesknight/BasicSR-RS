@@ -24,6 +24,28 @@ def charbonnier_loss(pred, target, eps=1e-12):
     return torch.sqrt((pred - target)**2 + eps)
 
 
+
+@LOSS_REGISTRY.register()
+class DiceLoss(nn.Module):
+    def __init__(self, smooth):
+        super(DiceLoss, self).__init__()
+        self.smooth = smooth
+
+    def forward(self, pred, target):
+        pred = pred.float()
+        target = target.float()
+
+        pred = pred.view(pred.size(0), -1)
+        target = target.view(target.size(0), -1)
+
+        intersection = (pred * target).sum(1)
+        dice = (2. * intersection + self.smooth) / \
+               (pred.sum(1) + target.sum(1) + self.smooth)
+
+        loss = 1 - dice
+        return loss.mean()
+
+
 @LOSS_REGISTRY.register()
 class L1Loss(nn.Module):
     """L1 (mean absolute error, MAE) loss.

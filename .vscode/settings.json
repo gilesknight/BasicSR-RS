@@ -5,7 +5,7 @@
         80,
         120
     ],
-    "editor.renderWhitespace": "all",
+    "editor.renderWhitespace": "none",
     "editor.renderControlCharacters": true,
     "python.formatting.provider": "yapf",
     "python.formatting.yapfArgs": [

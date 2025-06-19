@@ -91,6 +91,103 @@ def paired_random_crop(img_gts, img_lqs, gt_patch_size, scale, gt_path=None):
         img_lqs = img_lqs[0]
     return img_gts, img_lqs
 
+def paired_centred_crop(
+        mask, img, patch_size, gt_path=None
+    ):
+
+    input_type = 'Tensor' if torch.is_tensor(img[0]) else 'Numpy'
+
+    if input_type == 'Tensor':
+        h_img, w_img = img.size()[-2:]
+        h_mask, w_mask = mask.size()[-2:]
+    else:
+        h_img, w_img = img.shape[0:2]
+        h_mask, w_mask = mask.shape[0:2]
+
+    assert h_mask == h_img and w_mask == w_img, (
+            f"Input and target height and width dimensions are not equal:\n"
+            f"  Input height: {h_img}  Target height: {h_mask}\n"
+            f"  Input width: {w_img}  Target width: {w_mask}"
+        )
+    assert h_img == w_img, (
+        f"Input dimensions are not equal: {h_img} != {w_img}. File {gt_path}"
+    )
+    if h_img < patch_size or w_img < patch_size:
+        raise AssertionError(
+            "Image dimensions are smaller than the patch size: "
+            f"{patch_size}x{patch_size}. Got {h_img}x{w_img}. "
+            f"Please inspect: {gt_path}"
+        )
+
+    mid = int(h_img / 2)
+    crop = int(patch_size / 2)
+
+    if input_type == 'Tensor':
+        mask = mask[:, :, mid - crop:mid + crop, mid - crop:mid + crop]
+        img = img[:, :, mid - crop:mid + crop, mid - crop:mid + crop]
+    else:
+        mask = mask[mid - crop:mid + crop, mid - crop:mid + crop, ...]
+        img = img[mid - crop:mid + crop, mid - crop:mid + crop, ...]
+
+    if input_type == 'Tensor':
+        h_crop, w_crop = img.size()[-2:]
+    else:
+        h_crop, w_crop = img.shape[0:2]
+
+    assert h_crop == patch_size and w_crop == patch_size, (
+        f"Crop dimensions {h_crop}x{w_crop} != {patch_size}x{patch_size}. "
+        f"Image dimensions: {h_img}x{w_img}  File: {gt_path}"
+
+    )
+
+    return mask, img
+
+def paired_random_water_crop(
+        mask, img, patch_size, min_water_percent, gt_path=None
+    ):
+
+    input_type = 'Tensor' if torch.is_tensor(img[0]) else 'Numpy'
+
+    if input_type == 'Tensor':
+        h_img, w_img = img.size()[-2:]
+        h_mask, w_mask = mask.size()[-2:]
+    else:
+        h_img, w_img = img.shape[0:2]
+        h_mask, w_mask = mask.shape[0:2]
+
+    assert h_mask == h_img and w_mask == w_img, (
+            f"Input and target height and width dimensions are not equal:\n"
+            f"  Input height: {h_img}  Target height: {h_mask}\n"
+            f"  Input width: {w_img}  Target width: {w_mask}"
+        )
+    if h_img < patch_size or w_img < patch_size:
+        raise AssertionError(
+            "Image dimensions are smaller than the patch size: "
+            f"{patch_size}x{patch_size}. Got {h_img}x{w_img}. "
+            f"Please inspect: {gt_path}"
+        )
+
+    all_water = np.sum(mask)
+    max_water = patch_size ** 2
+    min_water = int(min_water_percent * all_water)
+    while min_water > max_water:
+        min_water_percent = min_water_percent / 2
+        min_water = int(min_water_percent * all_water)
+
+    crop_water = 0
+    while crop_water < min_water:
+        top = random.randint(0, h_img - patch_size)
+        left = random.randint(0, w_img - patch_size)
+        if input_type == 'Tensor':
+            img = img[:, :, top:top + patch_size, left:left + patch_size]
+            mask = mask[:, :, top:top + patch_size, left:left + patch_size]
+        else:
+            img = img[top:top + patch_size, left:left + patch_size, ...]
+            mask = mask[top:top + patch_size, left:left + patch_size, ...]
+        crop_water = np.sum(mask)
+
+    return mask, img
+
 
 def augment(imgs, hflip=True, rotation=True, flows=None, return_status=False):
     """Augment: horizontal flips OR rotate (0, 90, 180, 270 degrees).

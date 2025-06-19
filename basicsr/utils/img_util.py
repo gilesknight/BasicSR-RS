@@ -58,7 +58,7 @@ def rs_img2tensor(imgs, float32, bf16):
     if isinstance(imgs, list):
         return [_totensor(img, float32, bf16) for img in imgs]
     else:
-        return _totensor(imgs, float32)
+        return _totensor(imgs, float32, bf16)
 
 def tensor2img(tensor, rgb2bgr=True, out_type=np.uint8, min_max=(0, 1)):
     """Convert torch Tensors into image numpy arrays.
@@ -237,7 +237,7 @@ class RasterioReader:
 
 def rs_imfrombytes(
         content, reader, float32=False,
-        rescale_val=1.0, dtype=np.uint16, clip=False):
+        rescale_val=1.0, clip=False):
     """Read an remote sensing image from bytes.
 
     Args:
